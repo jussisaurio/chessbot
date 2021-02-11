@@ -1,0 +1,18 @@
+{
+  "name": "chessbot",
+  "version": "1.0.0",
+  "description": "slackbot for generating random chess puzzles",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "body-parser": "^1.19.0",
+    "chess-image-generator": "^1.0.9",
+    "chess.js": "^0.10.3",
+    "express": "^4.17.1"
+  }
+}
