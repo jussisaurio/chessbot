@@ -39,7 +39,10 @@ slackEvents.on("app_mention", async (event) => {
   console.log("Received an event");
   console.log(JSON.stringify(event, null, 2));
 
-  const textField = event.blocks.elements.find((e) => e.type === "text");
+  const textField = event.blocks
+    .find((b) => b.type === "rich_text")
+    ?.elements.find((e) => e.type === "rich_text_section")
+    ?.elements.find((e) => e.type === "text");
 
   if (!textField) return;
 
