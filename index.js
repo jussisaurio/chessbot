@@ -51,7 +51,9 @@ app.post("/puzzle", async (req, res, next) => {
       .json({ error: "There is already a puzzle in progress" });
   }
 
-  puzzleState.active = true;
+  console.log(req.body);
+
+  // puzzleState.active = true;
   try {
     const { game, data } = await getNewPuzzle();
     puzzleState.data = data;
