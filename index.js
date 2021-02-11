@@ -55,12 +55,12 @@ slackEvents.on("app_mention", async (event) => {
 
   if (!textField) return;
 
-  const text = textField.text.trim().toLowerCase();
+  const text = textField.text.trim();
   const channel = event.channel;
 
-  if (text === "new") {
+  if (text.toLowerCase() === "new") {
     return await newPuzzleHandler(channel);
-  } else if (text === "resign") {
+  } else if (text.toLowerCase() === "resign") {
     return await resignHandler(channel);
   } else {
     return await moveHandler(channel, text);
