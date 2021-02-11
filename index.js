@@ -26,7 +26,7 @@ const initialState = () => ({
   game: null
 });
 
-let puzzleState = {};
+const puzzleState = {};
 
 const playerColor = (game) => (game.turn() === "w" ? "White" : "Black");
 
@@ -65,36 +65,35 @@ app.get("/puzzle/:fen", async (req, res, next) => {
     res.setHeader("Content-Type", "image/png");
     res.status(200).send(buf);
   } catch (e) {
-    puzzleState = initialState();
     res.status(500).json({ error: "Something went wrong" });
   }
 });
 
 async function newPuzzleHandler(channel) {
-  if (!puzzle[channel]) puzzle[channel] = initialState();
+  if (!puzzleState[channel]) puzzleState[channel] = initialState();
 
-  if (puzzle[channel].active) {
+  if (puzzleState[channel].active) {
     return await webhook.send({
       text: `There is already an active puzzle on this channel. Mention me with the text 'resign' to give up. In the meantime, here is the current puzzle: ${formatUrl(
-        puzzle[channel]
+        puzzleState[channel]
       )}`
     });
   }
 
   const { game, data } = await getNewPuzzle();
 
-  puzzle[channel].active = true;
-  puzzle[channel].data = data;
-  puzzle[channel].game = game;
+  puzzleState[channel].active = true;
+  puzzleState[channel].data = data;
+  puzzleState[channel].game = game;
 
   return await webhook.send({
-    text: formatUrl(puzzle[channel])
+    text: formatUrl(puzzleState[channel])
   });
 }
 
 async function resignHandler(channel) {
-  if (puzzle[channel].active) {
-    puzzle[channel] = initialState();
+  if (puzzleState[channel].active) {
+    puzzleState[channel] = initialState();
     return await webhook.send({
       text: `Too hard for you? Mention me with the text 'new' to start a new puzzle`
     });
