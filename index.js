@@ -33,14 +33,20 @@ const playerColor = (game) => (game.turn() === "w" ? "White" : "Black");
 const formatPuzzleDescription = (state) =>
   `This puzzle is rated ELO ${state.data.elo}. ${playerColor(
     state.game
-  )} to move. Mention me with a legal chess move (e.g. Qxa4) to continue. \nList of legal moves: ${state.game.moves()} .\n ${SERVER_URL}/puzzle/${encodeURIComponent(
+  )} to move. Mention me with a legal chess move (e.g. ${
+    state.game.moves()[0]
+  }) to continue. \nList of legal moves: ${state.game
+    .moves()
+    .join(", ")} .\n ${SERVER_URL}/puzzle/${encodeURIComponent(
     state.game.fen()
   )}`;
 
 const formatPuzzleContinuation = (state, opponentMove) =>
   `Opponent moves ${opponentMove}. ${playerColor(
     state.game
-  )} to move. \nList of legal moves: ${state.game.moves()} .\n ${SERVER_URL}/puzzle/${encodeURIComponent(
+  )} to move. \nList of legal moves: ${state.game
+    .moves()
+    .join(", ")} .\n ${SERVER_URL}/puzzle/${encodeURIComponent(
     state.game.fen()
   )}`;
 
