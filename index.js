@@ -3,6 +3,11 @@ const express = require("express");
 const ChessImageGenerator = require("chess-image-generator");
 const { Chess } = require("chess.js");
 const bodyParser = require("body-parser");
+const { createEventAdapter } = require("@slack/events-api");
+
+const slackEvents = createEventAdapter(process.env.SLACK_SIGNING_SECRET);
+const PORT = process.env.PORT || 1337;
+
 const imageGenerator = new ChessImageGenerator({
   size: 720,
   style: "merida"
@@ -12,6 +17,8 @@ const SERVER_URL = process.env.SERVER_URL || "http://localhost:1337";
 const SLACK_WEBHOOK_URL = process.env_SLACK_WEBHOOK_URL;
 
 const app = express();
+
+app.use("/slack/events", slackEvents.expressMiddleware());
 
 app.use(bodyParser.json());
 
@@ -23,6 +30,11 @@ const initialState = () => ({
 });
 
 let puzzleState = initialState();
+
+slackEvents.on("app_mention", (event) => {
+  console.log("Received an event");
+  console.log(JSON.stringify(event, null, 2));
+});
 
 app.get("/puzzle/:fen", async (req, res, next) => {
   try {
@@ -37,14 +49,7 @@ app.get("/puzzle/:fen", async (req, res, next) => {
   }
 });
 
-app.post("/puzzle", async (req, res, next) => {
-  if (!req.body) {
-    return;
-  }
-  if (req.body.challenge) {
-    return res.status(200).send(req.body.challenge);
-  }
-
+async function newPuzzleHandler(req, res, next) {
   if (puzzleState.active) {
     return res
       .status(400)
@@ -72,7 +77,7 @@ app.post("/puzzle", async (req, res, next) => {
     puzzleState = initialState();
     res.status(500).json({ error: "Something went wrong" });
   }
-});
+}
 
 const getNewPuzzle = async () => {
   try {
@@ -96,8 +101,6 @@ const getNewPuzzle = async () => {
     console.error(e);
   }
 };
-
-const PORT = process.env.PORT || 1337;
 
 app.listen(PORT, () => {
   console.log("Chessbot active on port " + PORT);
