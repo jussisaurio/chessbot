@@ -30,10 +30,19 @@ const puzzleState = {};
 
 const playerColor = (game) => (game.turn() === "w" ? "White" : "Black");
 
-const formatUrl = (state) =>
+const formatPuzzleDescription = (state) =>
   `This puzzle is rated ELO ${state.data.elo}. ${playerColor(
     state.game
-  )} to move. ${SERVER_URL}/puzzle/${encodeURIComponent(state.game.fen())}`;
+  )} to move. Mention me with a legal chess move (e.g. Qxa4) to continue. \nList of legal moves: ${state.game.moves()} .\n ${SERVER_URL}/puzzle/${encodeURIComponent(
+    state.game.fen()
+  )}`;
+
+const formatPuzzleContinuation = (state, opponentMove) =>
+  `Opponent moves ${opponentMove}. ${playerColor(
+    state.game
+  )} to move. \nList of legal moves: ${state.game.moves()} .\n ${SERVER_URL}/puzzle/${encodeURIComponent(
+    state.game.fen()
+  )}`;
 
 slackEvents.on("app_mention", async (event) => {
   console.log("Received an event");
@@ -49,11 +58,12 @@ slackEvents.on("app_mention", async (event) => {
   const text = textField.text.trim().toLowerCase();
   const channel = event.channel;
 
-  // user requesting new puzzle
   if (text === "new") {
     return await newPuzzleHandler(channel);
   } else if (text === "resign") {
     return await resignHandler(channel);
+  } else {
+    return await moveHandler(channel, text);
   }
 });
 
@@ -74,7 +84,7 @@ async function newPuzzleHandler(channel) {
 
   if (puzzleState[channel].active) {
     return await webhook.send({
-      text: `There is already an active puzzle on this channel. Mention me with the text 'resign' to give up. In the meantime, here is the current puzzle: ${formatUrl(
+      text: `There is already an active puzzle on this channel. Mention me with the text 'resign' to give up. In the meantime, here is the current puzzle: ${formatPuzzleDescription(
         puzzleState[channel]
       )}`
     });
@@ -87,12 +97,12 @@ async function newPuzzleHandler(channel) {
   puzzleState[channel].game = game;
 
   return await webhook.send({
-    text: formatUrl(puzzleState[channel])
+    text: formatPuzzleDescription(puzzleState[channel])
   });
 }
 
 async function resignHandler(channel) {
-  if (puzzleState[channel].active) {
+  if (puzzleState[channel]?.active) {
     puzzleState[channel] = initialState();
     return await webhook.send({
       text: `Too hard for you? Mention me with the text 'new' to start a new puzzle`
@@ -102,6 +112,50 @@ async function resignHandler(channel) {
       text: `There is no active puzzle currently. Mention me with the text 'new' to start a new puzzle`
     });
   }
+}
+
+async function moveHandler(channel, move) {
+  if (!puzzleState[channel]) {
+    return await webhook.send({
+      text: `There is no active puzzle currently. Mention me with the text 'new' to start a new puzzle`
+    });
+  }
+
+  const { game, data } = puzzleState[channel];
+
+  if (!game.move(move)) {
+    return await webhook.send({
+      text: `${move} is not a legal move, unless I am mistaken. Try of one of: ${game.moves()}`
+    });
+  }
+
+  if (move !== data.forcedLine[0]) {
+    puzzleState[channel] = initialState();
+    return await webhook.send({
+      text: `${move} is not correct. Try again by mentioning me with the text 'new'.`
+    });
+  }
+
+  data.forcedLine.shift();
+
+  if (!data.forcedLine.length) {
+    puzzleState[channel] = initialState();
+    return await webhook.send({
+      text: `${move} is correct. Congratulations, you have solved the puzzle!`
+    });
+  }
+
+  const opponentMove = data.forcedLine.shift();
+
+  if (!game.move(opponentMove)) {
+    return await webhook.send({
+      text: `Application error, contact jsaurio and tell him to pls fix`
+    });
+  }
+
+  return await webhook.send({
+    text: formatPuzzleContinuation(puzzleState[channel], opponentMove)
+  });
 }
 
 const getNewPuzzle = async () => {
